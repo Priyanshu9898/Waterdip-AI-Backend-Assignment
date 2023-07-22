@@ -20,7 +20,7 @@ mongo = PyMongo(app)
 def Home():
     return "<h1>Hello world</h1>"
 
-# Create a Task
+# Create a single task or in bulk
 @app.route("/v1/tasks", methods=["POST"])
 def create_task():
     if request.method == "POST":
@@ -45,15 +45,14 @@ def create_task():
                 ids = []
                 for task in tasks:
                     is_completed = task.get('is_completed', False)
-                    doc = mongo.db.task.insert_one({"title": task['title'], "is_completed": is_completed})
+                    doc = mongo.db.task.insert_one(
+                        {"title": task['title'], "is_completed": is_completed})
                     ids.append(str(doc.inserted_id))
 
                 return jsonify({"tasks": ids}), 201
 
             except PyMongoError as e:
                 return jsonify({'error': str(e)}), 500
-            
-        
 
 
 # Get all tasks
@@ -90,6 +89,8 @@ def get_task(id):
             return jsonify({'error': str(e)}), 500
 
 # Update task by Id
+
+
 @app.route("/v1/tasks/<id>", methods=['PUT'])
 def update_task(id):
     if request.method == "PUT":
@@ -128,7 +129,7 @@ def delete_task(id):
 
                 mongo.db.task.delete_one({"_id": ObjectId(id)})
                 return jsonify({}), 204
-            
+
             else:
                 return jsonify({"error": "There is no task at that id"}), 404
 
@@ -138,22 +139,19 @@ def delete_task(id):
             return jsonify({'error': str(e)}), 500
 
 
-# @app.route("/v1/tasks", methods=["POST"])
-# def create_bulk_tasks():
-#     if request.method == "POST":
-#         try:
-#             tasks = request.json['tasks']
-#             print(tasks)
-#             ids = []
-#             for task in tasks:
-#                 doc = mongo.db.task.insert_one({"title": task['title'], "is_completed": task["is_completed"]})
-#                 ids.append(str(doc.inserted_id))
+# Delete task in bulk
+@app.route('/v1/tasks', methods=['DELETE'])
+def delete_multiple_tasks():
+    try:
+        data = request.get_json()
 
-#             return jsonify({"tasks": ids}), 201
+        for task in data['tasks']:
+            mongo.db.task.delete_one({"_id": ObjectId(task['id'])})
 
-#         except PyMongoError as e:
-#             return jsonify({'error': str(e)}), 500    
-
+        return jsonify({}), 204
+    
+    except PyMongoError as e:
+            return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)
