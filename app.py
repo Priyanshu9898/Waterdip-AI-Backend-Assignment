@@ -72,7 +72,6 @@ def get_task(id):
 def update_task(id):
     if request.method == "PUT":
         try:
-
             existed_task = mongo.db.task.find_one({"_id": ObjectId(id)})
 
             if (existed_task is not None):
@@ -86,6 +85,27 @@ def update_task(id):
                                                                           }
                                                                  })
                 return jsonify({}), 204
+            else:
+                return jsonify({"error": "There is no task at that id"}), 404
+
+        except InvalidId as e:
+            return jsonify({'error': 'Invalid id format'}), 400
+        except PyMongoError as e:
+            return jsonify({'error': str(e)}), 500
+
+
+@app.route("/v1/tasks/<id>", methods=["DELETE"])
+def delete_task(id):
+    if request.method == "DELETE":
+        try:
+
+            existed_task = mongo.db.task.find_one({"_id": ObjectId(id)})
+
+            if (existed_task is not None):
+                
+                mongo.db.task.delete_one({"_id": ObjectId(id)})
+                return jsonify({}), 204
+            
             else:
                 return jsonify({"error": "There is no task at that id"}), 404
 
