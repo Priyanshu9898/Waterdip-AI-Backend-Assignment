@@ -3,6 +3,7 @@ from flask_pymongo import PyMongo, ObjectId
 from dotenv import load_dotenv
 import os
 from pymongo.errors import PyMongoError
+from bson.errors import InvalidId
 
 # Load environment variables from .env file
 load_dotenv()
@@ -45,6 +46,24 @@ def get_tasks():
 
         except PyMongoError as e:
             return jsonify({"error": str(e)}), 500
+
+
+@app.route("/v1/tasks/<id>", methods=["GET"])
+def get_task(id):
+    if request.method == "GET":
+        try:
+            doc = mongo.db.task.find_one({"_id": ObjectId(id)})
+
+            if (doc is None):
+                return jsonify({'error': 'There is no task with that id'}), 404
+            else:
+                return jsonify({"id": str(ObjectId(doc["_id"])), "title": doc["title"], "is_completed": doc["is_completed"]})
+
+        except InvalidId as e:
+            return jsonify({'error': 'Invalid id format'}), 400
+        
+        except PyMongoError as e:
+            return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
