@@ -21,18 +21,39 @@ def Home():
     return "<h1>Hello world</h1>"
 
 # Create a Task
-
-
 @app.route("/v1/tasks", methods=["POST"])
 def create_task():
-    if (request.method == "POST"):
-        try:
-            is_completed = request.json.get('is_completed', False)
-            res = mongo.db.task.insert_one(
-                {"title": request.json['title'], "is_completed": is_completed})
-            return jsonify({"id": str(res.inserted_id)}), 201
-        except PyMongoError as e:
-            return jsonify({'error': str(e)}), 500
+    if request.method == "POST":
+
+        data = request.get_json()
+
+        if data is None:
+            return jsonify({"error": "Invalid JSON data in the request"}), 400
+
+        if data.get("tasks") is None:
+            try:
+                is_completed = data.get('is_completed', False)
+                res = mongo.db.task.insert_one(
+                    {"title": data['title'], "is_completed": is_completed})
+                return jsonify({"id": str(res.inserted_id)}), 201
+            except PyMongoError as e:
+                return jsonify({'error': str(e)}), 500
+
+        else:
+            try:
+                tasks = data['tasks']
+                ids = []
+                for task in tasks:
+                    is_completed = task.get('is_completed', False)
+                    doc = mongo.db.task.insert_one({"title": task['title'], "is_completed": is_completed})
+                    ids.append(str(doc.inserted_id))
+
+                return jsonify({"tasks": ids}), 201
+
+            except PyMongoError as e:
+                return jsonify({'error': str(e)}), 500
+            
+        
 
 
 # Get all tasks
@@ -50,6 +71,7 @@ def get_tasks():
             return jsonify({"error": str(e)}), 500
 
 
+# Get task by Id
 @app.route("/v1/tasks/<id>", methods=["GET"])
 def get_task(id):
     if request.method == "GET":
@@ -67,7 +89,7 @@ def get_task(id):
         except PyMongoError as e:
             return jsonify({'error': str(e)}), 500
 
-
+# Update task by Id
 @app.route("/v1/tasks/<id>", methods=['PUT'])
 def update_task(id):
     if request.method == "PUT":
@@ -94,6 +116,7 @@ def update_task(id):
             return jsonify({'error': str(e)}), 500
 
 
+# Delete task by Id
 @app.route("/v1/tasks/<id>", methods=["DELETE"])
 def delete_task(id):
     if request.method == "DELETE":
@@ -102,7 +125,7 @@ def delete_task(id):
             existed_task = mongo.db.task.find_one({"_id": ObjectId(id)})
 
             if (existed_task is not None):
-                
+
                 mongo.db.task.delete_one({"_id": ObjectId(id)})
                 return jsonify({}), 204
             
@@ -113,6 +136,23 @@ def delete_task(id):
             return jsonify({'error': 'Invalid id format'}), 400
         except PyMongoError as e:
             return jsonify({'error': str(e)}), 500
+
+
+# @app.route("/v1/tasks", methods=["POST"])
+# def create_bulk_tasks():
+#     if request.method == "POST":
+#         try:
+#             tasks = request.json['tasks']
+#             print(tasks)
+#             ids = []
+#             for task in tasks:
+#                 doc = mongo.db.task.insert_one({"title": task['title'], "is_completed": task["is_completed"]})
+#                 ids.append(str(doc.inserted_id))
+
+#             return jsonify({"tasks": ids}), 201
+
+#         except PyMongoError as e:
+#             return jsonify({'error': str(e)}), 500    
 
 
 if __name__ == '__main__':
