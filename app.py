@@ -64,11 +64,11 @@ def list_all_tasks():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/v1/tasks/<int:task_id>', methods=['GET'])
-def get_task(task_id):
+@app.route('/v1/tasks/<int:id>', methods=['GET'])
+def get_task(id):
     try:
         for task in tasks:
-            if task['id'] == task_id:
+            if task['id'] == id:
                 return jsonify(task), 200
 
         return jsonify({'error': 'There is no task at that id'}), 404
@@ -76,6 +76,45 @@ def get_task(task_id):
     except Exception as e:
         return jsonify({'error': 'Unexpected error occurred'}), 500
 
+@app.route('/v1/tasks/<int:id>', methods=['PUT'])
+def edit_task(id):
+    try:
+        for task in tasks:
+            if task['id'] == id:
+                updates = request.get_json()
+                if 'title' in updates:
+                    task['title'] = updates['title']
+                if 'is_completed' in updates:
+                    task['is_completed'] = updates['is_completed']
+                return '', 204
+
+        return jsonify({'error': 'There is no task at that id'}), 404
+    
+
+    except Exception as e:
+        return jsonify({'error' : str(e)}), 500
+
+@app.route('/v1/tasks/<int:id>', methods=['DELETE'])
+def delete_task(id):
+    global tasks
+    try:
+        tasks = [task for task in tasks if task['id'] != id]
+        return '', 204
+    except Exception as e:
+        return jsonify({'error' : str(e)}), 500
+    
+@app.route('/v1/tasks', methods=['DELETE'])
+def delete_multiple_tasks():
+    try:
+        task_list = request.get_json()
+        if 'tasks' not in task_list:
+            return jsonify({'error' : 'No tasks to delete'}), 400
+        ids_to_delete = [task['id'] for task in task_list['tasks']]
+        global tasks
+        tasks = [task for task in tasks if task['id'] not in ids_to_delete]
+        return '', 204
+    except Exception as e:
+        return jsonify({'error' : str(e)}), 500
 
 
 if __name__ == '__main__':
